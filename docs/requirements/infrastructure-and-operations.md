@@ -11,9 +11,8 @@ Portal.
 
 The following constraints are approved:
 
-- `otherones/small-moves` is the sole implementation and documentation target.
-- Legacy Principal Emergency Fund repositories are out of scope and will be
-  deprecated. They are not deployment targets or authoritative sources.
+- `otherones/small-moves-aistudio` is a separate Google AI Studio implementation experiment using a copied planning baseline. `otherones/small-moves` remains the canonical planning repository and the future Codex implementation target.
+- Legacy Principal Emergency Fund repositories are out of scope and will be deprecated. They are not deployment targets or authoritative sources.
 - The application is hosted on Google Cloud Platform (GCP).
 - Firebase provides application hosting, operational data storage, and user
   authentication.
