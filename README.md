@@ -39,9 +39,7 @@ application.
 
 ## Working rules
 
-- `otherones/small-moves` is the sole implementation and documentation target.
-  Legacy Principal Emergency Fund repositories are out of scope and will be
-  deprecated; do not deploy from or treat them as authoritative sources.
+- `otherones/small-moves-aistudio` is a separate Google AI Studio implementation experiment. This copied documentation is a working baseline; `otherones/small-moves` remains the canonical planning repository and the future Codex implementation target. Legacy Principal Emergency Fund repositories remain out of scope and must not be treated as authoritative sources.
 - Treat statements labeled as current-code behavior, implementation quirks, or
   mock behavior as prototype observations, not approved architecture.
 - Treat dated Figma wireframes as provenance, not the current visual target.
