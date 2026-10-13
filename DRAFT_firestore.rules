@@ -1,0 +1,133 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Default deny all unmatched paths
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // --- Helper Functions ---
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isBootstrappedAdmin() {
+      return isSignedIn() && (
+        request.auth.token.email == 'cshanecolley@gmail.com' ||
+        (request.auth.token.email != null && request.auth.token.email.matches('(?i).+@smallmoves\\.org$'))
+      );
+    }
+
+    function isRegisteredAdmin() {
+      return isSignedIn() && (
+        exists(/databases/$(database)/documents/adminUsers/$(request.auth.uid)) ||
+        (exists(/databases/$(database)/documents/appUsers/$(request.auth.uid)) &&
+         get(/databases/$(database)/documents/appUsers/$(request.auth.uid)).data.role == 'admin')
+      );
+    }
+
+    function isAdmin() {
+      return isBootstrappedAdmin() || isRegisteredAdmin();
+    }
+
+    function getUserData() {
+      return get(/databases/$(database)/documents/appUsers/$(request.auth.uid)).data;
+    }
+
+    function getUserSchoolId() {
+      return getUserData().schoolId;
+    }
+
+    function hasSchoolAssigned() {
+      return exists(/databases/$(database)/documents/appUsers/$(request.auth.uid)) &&
+             getUserData().schoolId != null;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() > 0 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    // --- 1. Global Settings Collection ---
+    // Exclusively restricted to verified administrators
+    match /settings/{settingsId} {
+      allow read, write: if isAdmin() && isValidId(settingsId);
+    }
+
+    // --- 2. Admin Users Collection ---
+    // Exclusively restricted to verified administrators
+    match /adminUsers/{adminUserId} {
+      allow read, write: if isAdmin() && isValidId(adminUserId);
+    }
+
+    // --- 3. App Users Collection ---
+    // Users can read/update their own profile; admins have full access
+    match /appUsers/{userId} {
+      allow get: if isSignedIn() && isValidId(userId) && (request.auth.uid == userId || isAdmin());
+      allow list: if isAdmin();
+      allow create, update: if isSignedIn() && isValidId(userId) && (request.auth.uid == userId || isAdmin());
+      allow delete: if isAdmin() && isValidId(userId);
+    }
+
+    // --- 4. Emergency Requests Collection ---
+    // Admins can manage all; Principals/school contacts scoped strictly to their school
+    match /requests/{requestId} {
+      allow get: if isValidId(requestId) && (
+        isAdmin() ||
+        (isSignedIn() && hasSchoolAssigned() && resource.data.schoolId == getUserSchoolId())
+      );
+      allow list: if isSignedIn();
+      allow create: if isValidId(requestId) && (
+        isAdmin() ||
+        (isSignedIn() && hasSchoolAssigned() && request.resource.data.schoolId == getUserSchoolId())
+      );
+      allow update: if isValidId(requestId) && (
+        isAdmin() ||
+        (isSignedIn() && hasSchoolAssigned() && resource.data.schoolId == getUserSchoolId() && request.resource.data.schoolId == getUserSchoolId())
+      );
+      allow delete: if isAdmin() && isValidId(requestId);
+    }
+
+    // --- 5. Schools Collection ---
+    // Admins can manage all; Principals/school contacts scoped to their school
+    match /schools/{schoolId} {
+      allow get: if isValidId(schoolId) && (
+        isAdmin() ||
+        (isSignedIn() && hasSchoolAssigned() && schoolId == getUserSchoolId())
+      );
+      allow list: if isSignedIn();
+      allow create: if isAdmin() && isValidId(schoolId);
+      allow update: if isValidId(schoolId) && (
+        isAdmin() ||
+        (isSignedIn() && hasSchoolAssigned() && schoolId == getUserSchoolId())
+      );
+      allow delete: if isAdmin() && isValidId(schoolId);
+    }
+
+    // --- 6. Funders Collection ---
+    match /funders/{funderId} {
+      allow read: if isSignedIn() && isValidId(funderId);
+      allow write: if isAdmin() && isValidId(funderId);
+    }
+
+    // --- 7. Activity Logs Collection ---
+    match /activityLogs/{logId} {
+      allow read: if isSignedIn() && isValidId(logId);
+      allow create: if isSignedIn() && isValidId(logId);
+      allow update, delete: if isAdmin() && isValidId(logId);
+    }
+
+    // --- 8. Pending Invites Collection ---
+    match /pendingInvites/{inviteId} {
+      allow read, write: if isSignedIn() && isValidId(inviteId);
+    }
+
+    // --- 9. Mail Dispatch Queue ---
+    // Never allow unauthenticated writes or reads to /mail
+    match /mail/{mailId} {
+      allow read: if isAdmin() && isValidId(mailId);
+      allow create: if isSignedIn() && isValidId(mailId);
+      allow update, delete: if isAdmin() && isValidId(mailId);
+    }
+  }
+}

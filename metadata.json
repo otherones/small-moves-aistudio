@@ -1,0 +1,6 @@
+{
+  "name": "Small Moves",
+  "description": "Principal Emergency Fund (PEF) Portal for managing emergency fund requests, approvals, payouts, school onboarding, and MOU compliance.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

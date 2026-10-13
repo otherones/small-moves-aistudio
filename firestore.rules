@@ -1,0 +1,134 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Default deny all unmatched paths
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // --- Helper Functions ---
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isBootstrappedAdmin() {
+      return isSignedIn() && (
+        (request.auth.token.email != null && request.auth.token.email.lower() == 'cshanecolley@gmail.com') ||
+        (request.auth.token.email != null && request.auth.token.email.lower() == 'rgraham@lff.com') ||
+        (request.auth.token.email != null && request.auth.token.email.matches('(?i).+@smallmoves\\.org$')) ||
+        (request.auth.token.email != null && request.auth.token.email.matches('(?i).+@lff\\.com$'))
+      );
+    }
+
+    function isRegisteredAdmin() {
+      return isSignedIn() && (
+        exists(/databases/$(database)/documents/adminUsers/$(request.auth.uid)) ||
+        (exists(/databases/$(database)/documents/appUsers/$(request.auth.uid)) &&
+         get(/databases/$(database)/documents/appUsers/$(request.auth.uid)).data.role == 'admin')
+      );
+    }
+
+    function isAdmin() {
+      return isBootstrappedAdmin() || isRegisteredAdmin();
+    }
+
+    function getUserData() {
+      return get(/databases/$(database)/documents/appUsers/$(request.auth.uid)).data;
+    }
+
+    function getUserSchoolId() {
+      return getUserData().schoolId;
+    }
+
+    function hasSchoolAssigned() {
+      return exists(/databases/$(database)/documents/appUsers/$(request.auth.uid)) &&
+             getUserData().schoolId != null;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() > 0 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    // --- 1. Global Settings Collection ---
+    // Public portal configurations are readable by anyone (for onboarding & login)
+    // Sensitive secrets (/settings/secrets) are strictly Admin-only
+    match /settings/{settingsId} {
+      allow get: if (settingsId == 'secrets') ? isAdmin() : true;
+      allow list: if true;
+      allow create, update, delete: if isAdmin();
+    }
+
+    // --- 2. Admin Users Collection ---
+    match /adminUsers/{adminUserId} {
+      allow get, list, create, update, delete: if isAdmin();
+    }
+
+    // --- 3. App Users Collection ---
+    match /appUsers/{userId} {
+      allow get: if isSignedIn() && (request.auth.uid == userId || isAdmin());
+      allow list: if isAdmin();
+      allow create: if isSignedIn() && (request.auth.uid == userId || isAdmin());
+      allow update: if isSignedIn() && (request.auth.uid == userId || isAdmin());
+      allow delete: if isAdmin();
+    }
+
+    // --- 4. Emergency Requests Collection ---
+    // Single request lookup allowed for public beneficiary payout confirmation
+    match /requests/{requestId} {
+      allow get: if true;
+      allow list: if isSignedIn();
+      allow create: if isAdmin() || (isSignedIn() && hasSchoolAssigned() && request.resource.data.schoolId == getUserSchoolId());
+      allow update: if true;
+      allow delete: if isSignedIn();
+    }
+
+    // --- 5. Schools Collection ---
+    // Schools directory readable for onboarding verification and MOU preview
+    match /schools/{schoolId} {
+      allow get, list: if true;
+      allow create: if isSignedIn();
+      allow update: if true;
+      allow delete: if isSignedIn();
+    }
+
+    // --- 6. Funders Collection ---
+    match /funders/{funderId} {
+      allow get, list: if isSignedIn();
+      allow create, update, delete: if isSignedIn();
+    }
+
+    // --- 7. Activity Logs Collection ---
+    match /activityLogs/{logId} {
+      allow get, list: if isSignedIn();
+      allow create: if isSignedIn();
+      allow update, delete: if isSignedIn();
+    }
+
+    // --- 8. Pending Invites Collection ---
+    // Unauthenticated invite verification allows invited staff to look up tokens and setup passwords
+    match /pendingInvites/{inviteId} {
+      allow get, list: if true;
+      allow create, update, delete: if true;
+    }
+
+    // --- 9. Mail Dispatch Queue ---
+    match /{mailCol}/{mailId} {
+      allow get, list, create, update, delete: if isSignedIn() && (mailCol in ['mail', 'mail_logs', 'emails', 'mailQueue']);
+    }
+
+    // --- 10. SMS Logs Collection ---
+    match /sms_logs/{logId} {
+      allow get, list: if isSignedIn();
+      allow create: if isSignedIn();
+      allow update, delete: if isAdmin();
+    }
+
+    // --- 11. Request History Collection (Append-Only Audit Trail) ---
+    match /requestHistory/{historyId} {
+      allow get, list: if isSignedIn();
+      allow create: if true; // Allows authenticated users, webhooks, and public beneficiary confirmations to append history
+      allow update, delete: if false; // Append-only: historical revisions can NEVER be modified or deleted
+    }
+  }
+}

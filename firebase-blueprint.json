@@ -1,0 +1,247 @@
+{
+  "entities": {
+    "EmergencyRequest": {
+      "title": "Emergency Fund Request",
+      "description": "An emergency fund request submitted by a principal or contact for a student/family in need",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "Request ID e.g. REQ-2026-1001" },
+        "schoolId": { "type": "string", "description": "School ID" },
+        "schoolName": { "type": "string", "description": "School Name" },
+        "submitterId": { "type": "string", "description": "Submitter User ID" },
+        "submitterName": { "type": "string", "description": "Submitter Name" },
+        "submitterEmail": { "type": "string", "description": "Submitter Email" },
+        "submitterRole": { "type": "string", "enum": ["principal", "additional_contact"] },
+        "beneficiaryName": { "type": "string", "description": "Beneficiary Name" },
+        "studentName": { "type": "string", "description": "Student Name optional" },
+        "amount": { "type": "number", "description": "Requested dollar amount" },
+        "category": { "type": "string", "description": "Request category" },
+        "reason": { "type": "string", "description": "Detailed explanation of emergency" },
+        "additionalContext": { "type": "string", "description": "Optional additional context" },
+        "status": {
+          "type": "string",
+          "enum": [
+            "in_review",
+            "waiting_on_principal",
+            "waiting_on_beneficiary",
+            "ready_to_pay",
+            "changes_requested",
+            "response_requested",
+            "paid",
+            "denied",
+            "canceled"
+          ]
+        },
+        "taskContext": { "type": "string", "description": "Task context e.g. payout_change, request_change, question_response" },
+        "statusNote": { "type": "string", "description": "Note regarding status change" },
+        "mouAcknowledged": { "type": "boolean", "description": "MOU acknowledgment checkbox" },
+        "payoutDetails": { "type": "object", "description": "Payment instructions" },
+        "emailLogs": { "type": "array", "description": "Transactional email log entries" },
+        "createdAt": { "type": "string", "description": "Creation ISO timestamp" },
+        "updatedAt": { "type": "string", "description": "Last update ISO timestamp" }
+      },
+      "required": ["id", "schoolId", "submitterName", "submitterEmail", "beneficiaryName", "amount", "category", "reason", "status", "createdAt"]
+    },
+    "School": {
+      "title": "School Profile",
+      "description": "School information, budget allocations, and contacts",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "School ID" },
+        "name": { "type": "string", "description": "School Name" },
+        "address": { "type": "string", "description": "Street Address" },
+        "city": { "type": "string", "description": "City" },
+        "state": { "type": "string", "description": "State" },
+        "zip": { "type": "string", "description": "Zip Code" },
+        "phone": { "type": "string", "description": "Phone Number" },
+        "studentCount": { "type": "number", "description": "Total student enrollment" },
+        "status": { "type": "string", "enum": ["active", "invited", "inactive"] },
+        "annualBudget": { "type": "number", "description": "Annual allocated budget" },
+        "budgetReserved": { "type": "number", "description": "Currently reserved budget for pending requests" },
+        "budgetPaid": { "type": "number", "description": "Total disbursed budget" },
+        "budgetAvailable": { "type": "number", "description": "Remaining available balance" },
+        "principalId": { "type": "string", "description": "Principal ID" },
+        "principalName": { "type": "string", "description": "Principal Name" },
+        "principalEmail": { "type": "string", "description": "Principal Email" },
+        "principalPhone": { "type": "string", "description": "Principal Phone" },
+        "additionalContacts": { "type": "array", "description": "Additional school contact contacts" },
+        "currentMouSigned": { "type": "boolean", "description": "Whether current MOU is signed" },
+        "createdAt": { "type": "string", "description": "Creation ISO timestamp" },
+        "updatedAt": { "type": "string", "description": "Last update ISO timestamp" }
+      },
+      "required": ["id", "name", "annualBudget", "status", "createdAt"]
+    },
+    "ActivityEvent": {
+      "title": "Activity Audit Event",
+      "description": "Audit log event for requests and budget adjustments",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "Event ID" },
+        "requestId": { "type": "string", "description": "Associated request ID" },
+        "schoolId": { "type": "string", "description": "Associated school ID" },
+        "actorId": { "type": "string", "description": "Actor user ID" },
+        "actorName": { "type": "string", "description": "Actor display name" },
+        "actorRole": { "type": "string", "description": "Actor role" },
+        "eventType": { "type": "string", "description": "Event classification" },
+        "message": { "type": "string", "description": "Log message description" },
+        "timestamp": { "type": "string", "description": "Timestamp" }
+      },
+      "required": ["id", "actorName", "eventType", "message", "timestamp"]
+    },
+    "PortalSettings": {
+      "title": "Portal System Settings",
+      "description": "Global settings for email templates, status labels, business calendar, and payout options",
+      "type": "object",
+      "properties": {
+        "annualDefaultBudget": { "type": "number", "description": "Default annual budget allocation" },
+        "statusDisplayLabels": { "type": "object", "description": "Custom labels for status display" },
+        "payoutMethods": { "type": "array", "description": "Configured payout methods" },
+        "emailTemplates": { "type": "array", "description": "Configured transactional email templates" },
+        "businessCalendar": { "type": "object", "description": "Business calendar settings" }
+      },
+      "required": ["annualDefaultBudget"]
+    },
+    "AdminUser": {
+      "title": "Admin User",
+      "description": "Small Moves administration user",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "Admin ID" },
+        "name": { "type": "string", "description": "Admin Name" },
+        "email": { "type": "string", "description": "Admin Email" },
+        "role": { "type": "string", "enum": ["ops", "admin", "finance", "support"] },
+        "notificationPreference": { "type": "string", "enum": ["all", "ready_to_pay", "none"] },
+        "createdAt": { "type": "string", "description": "Creation timestamp" }
+      },
+      "required": ["id", "name", "email", "role", "createdAt"]
+    },
+    "MailDocument": {
+      "title": "Trigger Mail Message",
+      "description": "Email dispatch document processed by the Firebase Trigger Email Extension / SendGrid",
+      "type": "object",
+      "properties": {
+        "to": { "type": "array", "description": "Recipient email addresses" },
+        "from": { "type": "string", "description": "Sender email" },
+        "replyTo": { "type": "string", "description": "Reply-To address" },
+        "message": { "type": "object", "description": "Subject and body content" },
+        "metadata": { "type": "object", "description": "Context and audit information" },
+        "delivery": { "type": "object", "description": "Status and delivery info" },
+        "createdAt": { "type": "string", "description": "Creation timestamp" }
+      },
+      "required": ["to", "message"]
+    },
+    "Funder": {
+      "title": "Funding Entity",
+      "description": "Philanthropic foundation, corporate partner, or grantmaker",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "Funder ID e.g. FND-01" },
+        "name": { "type": "string", "description": "Funder entity name" },
+        "type": { "type": "string", "enum": ["Foundation", "Government", "Corporate", "Nonprofit", "Individual", "Other"] },
+        "contactName": { "type": "string", "description": "Primary contact name" },
+        "contactEmail": { "type": "string", "description": "Primary contact email" },
+        "contactPhone": { "type": "string", "description": "Primary contact phone" },
+        "notes": { "type": "string", "description": "Relationship or grant notes" },
+        "associatedSchoolIds": { "type": "array", "description": "List of associated school IDs" },
+        "createdAt": { "type": "string", "description": "Creation timestamp" }
+      },
+      "required": ["id", "name", "type", "createdAt"]
+    },
+    "AppUser": {
+      "title": "Application User",
+      "description": "Authenticated user profile and role mapping",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "Firebase Auth UID" },
+        "email": { "type": "string", "description": "User email address" },
+        "displayName": { "type": "string", "description": "User full name" },
+        "role": { "type": "string", "enum": ["admin", "principal", "additional_contact", "funder", "ops"] },
+        "schoolId": { "type": "string", "description": "Assigned school ID" },
+        "createdAt": { "type": "string", "description": "Creation timestamp" }
+      },
+      "required": ["id", "email", "role"]
+    },
+    "PendingInvite": {
+      "title": "Pending School/Admin Invite",
+      "description": "Invitation tokens for principals and contacts",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "Invite token or ID" },
+        "email": { "type": "string", "description": "Invited email" },
+        "schoolId": { "type": "string", "description": "Associated school" },
+        "role": { "type": "string", "description": "Intended role" },
+        "status": { "type": "string", "enum": ["pending", "accepted", "expired"] },
+        "createdAt": { "type": "string", "description": "Creation timestamp" }
+      },
+      "required": ["id", "email", "schoolId", "role"]
+    },
+    "SmsLogEntry": {
+      "title": "SMS Transmission Log",
+      "description": "Outbound and inbound SMS transactional event log",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "Unique log record ID" },
+        "messageUuid": { "type": "string", "description": "Vonage or provider message UUID" },
+        "direction": { "type": "string", "enum": ["outbound", "inbound"] },
+        "to": { "type": "string", "description": "Recipient phone number in E.164" },
+        "from": { "type": "string", "description": "Sender phone number or toll-free ID" },
+        "recipientName": { "type": "string", "description": "Recipient display name" },
+        "recipientRole": { "type": "string", "description": "Recipient role e.g. beneficiary" },
+        "text": { "type": "string", "description": "SMS message body" },
+        "originalText": { "type": "string", "description": "Pre-translation text" },
+        "status": { "type": "string", "enum": ["delivered", "submitted", "simulated", "failed", "received"] },
+        "dispatchedAt": { "type": "string", "description": "ISO timestamp of dispatch" },
+        "language": { "type": "string", "description": "Target language code" },
+        "languageName": { "type": "string", "description": "Target language display name" },
+        "isTranslated": { "type": "boolean", "description": "Whether message was translated" },
+        "requestId": { "type": "string", "description": "Associated emergency request ID" },
+        "schoolId": { "type": "string", "description": "Associated school ID" },
+        "authMethod": { "type": "string", "description": "Vonage authentication method" },
+        "details": { "type": "string", "description": "Delivery notes or diagnostic info" }
+      },
+      "required": ["id", "direction", "to", "from", "text", "status", "dispatchedAt"]
+    }
+  },
+  "firestore": {
+    "/requests/{requestId}": {
+      "schema": { "$ref": "#/entities/EmergencyRequest" },
+      "description": "Emergency fund request records"
+    },
+    "/schools/{schoolId}": {
+      "schema": { "$ref": "#/entities/School" },
+      "description": "School directory and budget balances"
+    },
+    "/activityLogs/{logId}": {
+      "schema": { "$ref": "#/entities/ActivityEvent" },
+      "description": "System activity audit logs"
+    },
+    "/settings/{settingsId}": {
+      "schema": { "$ref": "#/entities/PortalSettings" },
+      "description": "Global application configuration"
+    },
+    "/adminUsers/{adminUserId}": {
+      "schema": { "$ref": "#/entities/AdminUser" },
+      "description": "Admin and review team user profiles"
+    },
+    "/appUsers/{userId}": {
+      "schema": { "$ref": "#/entities/AppUser" },
+      "description": "Authenticated user profile mappings"
+    },
+    "/pendingInvites/{inviteId}": {
+      "schema": { "$ref": "#/entities/PendingInvite" },
+      "description": "Pending invitation records"
+    },
+    "/funders/{funderId}": {
+      "schema": { "$ref": "#/entities/Funder" },
+      "description": "Funding entities and associated school grants"
+    },
+    "/mail/{mailId}": {
+      "schema": { "$ref": "#/entities/MailDocument" },
+      "description": "Trigger Email extension mail dispatch queue"
+    },
+    "/sms_logs/{logId}": {
+      "schema": { "$ref": "#/entities/SmsLogEntry" },
+      "description": "SMS transmission and delivery audit logs"
+    }
+  }
+}
